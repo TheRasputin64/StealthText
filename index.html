@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>StealthText</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --accent: #64748b;
+      --accent-hover: #475569;
+      --text: #f8fafc;
+      --panel: #1e293b;
+      --border: #334155;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .titlebar {
+      height: 38px;
+      background: var(--bg-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      -webkit-app-region: drag;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .controls button {
+      -webkit-app-region: no-drag;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      width: 38px;
+      height: 38px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .controls button:hover {
+      background: var(--accent);
+    }
+    
+    .container {
+      display: flex;
+      height: calc(100vh - 38px);
+    }
+    
+    .sidebar {
+      width: min(25vw, 200px);
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .menu-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    
+    .menu-btn:hover {
+      background: var(--accent-hover);
+    }
+    
+    .menu-btn.active {
+      background: var(--accent);
+    }
+    
+    .main-content {
+      flex: 1;
+      padding: 1.5rem;
+      position: relative;
+    }
+    
+    .panel {
+      position: absolute;
+      inset: 1rem;
+      padding: 1.5rem;
+      background: var(--panel);
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+    
+    .panel.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: all;
+    }
+    
+    .image-preview {
+      width: 100%;
+      height: min(40vh, 260px);
+      border: 2px dashed var(--accent);
+      border-radius: 8px;
+      margin: 1rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-secondary);
+      transition: all 0.2s;
+      overflow: hidden;
+    }
+    
+    .image-preview:hover {
+      border-color: var(--accent-hover);
+    }
+    
+    .image-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    textarea {
+      width: 100%;
+      height: min(20vh, 150px);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      color: var(--text);
+      resize: vertical;
+      margin: 1rem 0;
+      font-family: inherit;
+      transition: all 0.2s;
+      min-height: 100px;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    
+    .select-btn, .action-btn, .upload-btn {
+      padding: 0.75rem 1.25rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      flex: 1;
+      min-width: max-content;
+    }
+    
+    .select-btn:hover, .action-btn:hover, .upload-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+    }
+    
+    .message-container {
+      position: relative;
+      margin: 1rem 0;
+    }
+    
+    .message-box {
+      width: 100%;
+      min-height: min(25vh, 150px);
+      max-height: 35vh;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-y: auto;
+    }
+    
+    .copy-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 0.5rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+    
+    .copy-btn:hover {
+      background: var(--accent);
+    }
+    
+    h2 {
+      color: var(--text);
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    
+    @media (max-width: 640px) {
+      .container {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        padding: 0.75rem;
+      }
+      
+      .menu-btn {
+        flex: 1;
+      }
+      
+      .main-content {
+        height: calc(100vh - 38px - 71px);
+      }
+      
+      .button-group {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="title">StealthText</div>
+    <div class="controls">
+      <button class="minimize">−</button>
+      <button class="maximize">□</button>
+      <button class="close">×</button>
+    </div>
+  </div>
+  <div class="container">
+    <div class="sidebar">
+      <button class="menu-btn encode active">Encode</button>
+      <button class="menu-btn decode">Decode</button>
+    </div>
+    <div class="main-content">
+      <div class="panel encode-panel active">
+        <h2>Encode Message</h2>
+        <div class="image-preview">
+          <img id="encode-preview" />
+        </div>
+        <div class="button-group">
+          <button class="select-btn">Select Image</button>
+          <button class="upload-btn">Upload Text</button>
+          <input type="file" id="text-file" accept=".txt" style="display: none;">
+        </div>
+        <textarea placeholder="Enter your secret message..."></textarea>
+        <button class="action-btn">Encode & Save</button>
+      </div>
+      <div class="panel decode-panel">
+        <h2>Decode Message</h2>
+        <div class="image-preview">
+          <img id="decode-preview" />
+        </div>
+        <button class="select-btn">Select Image</button>
+        <div class="message-container">
+          <div class="message-box"></div>
+          <button class="copy-btn">📋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+<script>
+  const { ipcRenderer } = require('electron');
+
+document.querySelectorAll('.menu-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelector('.menu-btn.active').classList.remove('active');
+    btn.classList.add('active');
+    
+    const target = btn.classList.contains('encode') ? 'encode-panel' : 'decode-panel';
+    document.querySelector('.panel.active').classList.remove('active');
+    document.querySelector(`.${target}`).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.select-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    try {
+      const filePath = await ipcRenderer.invoke('select-file');
+      if (!filePath) return;
+      
+      const panel = btn.closest('.panel');
+      const img = panel.querySelector('img');
+      img.src = filePath;
+      img.dataset.path = filePath;
+
+      if (panel.classList.contains('decode-panel')) {
+        const messageBox = document.querySelector('.message-box');
+        messageBox.textContent = 'Decoding message...';
+        try {
+          const text = await ipcRenderer.invoke('decode-text', filePath);
+          messageBox.textContent = text || 'No hidden message found';
+        } catch (error) {
+          messageBox.textContent = error.message;
+        }
+      }
+    } catch (error) {
+      console.error('File selection error:', error);
+      showError('Error selecting file: ' + error.message);
+    }
+  });
+});
+
+document.querySelector('.upload-btn').addEventListener('click', () => {
+  document.getElementById('text-file').click();
+});
+
+document.getElementById('text-file').addEventListener('change', async (event) => {
+  try {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const text = await file.text();
+    document.querySelector('textarea').value = text;
+    event.target.value = '';
+  } catch (error) {
+    showError('Error reading text file: ' + error.message);
+  }
+});
+
+document.querySelector('.encode-panel .action-btn').addEventListener('click', async () => {
+  try {
+    const imagePath = document.querySelector('#encode-preview').dataset.path;
+    const text = document.querySelector('textarea').value.trim();
+    
+    if (!imagePath) {
+      showError('Please select an image first');
+      return;
+    }
+    
+    if (!text) {
+      showError('Please enter a message to encode');
+      return;
+    }
+    
+    document.querySelector('.action-btn').disabled = true;
+    document.querySelector('.action-btn').textContent = 'Encoding...';
+    
+    await ipcRenderer.invoke('encode-text', { imagePath, text });
+    
+    document.querySelector('textarea').value = '';
+    document.querySelector('#encode-preview').src = '';
+    document.querySelector('#encode-preview').dataset.path = '';
+  } catch (error) {
+    showError('Encoding error: ' + error.message);
+  } finally {
+    document.querySelector('.action-btn').disabled = false;
+    document.querySelector('.action-btn').textContent = 'Encode & Save';
+  }
+});
+
+document.querySelector('.copy-btn').addEventListener('click', () => {
+  const text = document.querySelector('.message-box').textContent;
+  if (text && text !== 'No hidden message found') {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✓';
+        setTimeout(() => btn.textContent = '📋', 1500);
+      })
+      .catch(error => showError('Failed to copy text: ' + error.message));
+  }
+});
+
+document.querySelector('.minimize').addEventListener('click', () => {
+  const win = require('@electron/remote').getCurrentWindow();
+  win.minimize();
+});
+
+document.querySelector('.maximize').addEventListener('click', () => {
+  const win = require('@electron/remote').getCurrentWindow();
+  if (win.isMaximized()) {
+    win.unmaximize();
+    document.querySelector('.maximize').textContent = '□';
+  } else {
+    win.maximize();
+    document.querySelector('.maximize').textContent = '❐';
+  }
+});
+
+document.querySelector('.close').addEventListener('click', () => {
+  const win = require('@electron/remote').getCurrentWindow();
+  win.close();
+});
+
+function showError(message) {
+  const errorTimeout = 3000;
+  
+  const errorDiv = document.createElement('div');
+  errorDiv.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ef4444;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: slideUp 0.3s ease;
+  `;
+  
+  errorDiv.textContent = message;
+  document.body.appendChild(errorDiv);
+  
+  setTimeout(() => {
+    errorDiv.style.animation = 'slideDown 0.3s ease';
+    errorDiv.addEventListener('animationend', () => {
+      errorDiv.remove();
+    });
+  }, errorTimeout);
+}
+
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideUp {
+    from {
+      transform: translate(-50%, 100%);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideDown {
+    from {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+    to {
+      transform: translate(-50%, 100%);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(style);
+
+window.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+window.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  
+  const activePanel = document.querySelector('.panel.active');
+  
+  if (file.type.startsWith('image/')) {
+    const img = activePanel.querySelector('img');
+    const path = file.path;
+    img.src = path;
+    img.dataset.path = path;
+    
+    if (activePanel.classList.contains('decode-panel')) {
+      const messageBox = document.querySelector('.message-box');
+      messageBox.textContent = 'Decoding message...';
+      try {
+        const text = await ipcRenderer.invoke('decode-text', path);
+        messageBox.textContent = text || 'No hidden message found';
+      } catch (error) {
+        messageBox.textContent = error.message;
+      }
+    }
+  } else if (file.type === 'text/plain' && activePanel.classList.contains('encode-panel')) {
+    try {
+      const text = await file.text();
+      document.querySelector('textarea').value = text;
+    } catch (error) {
+      showError('Error reading text file: ' + error.message);
+    }
+  }
+});
+
+document.querySelectorAll('.image-preview').forEach(preview => {
+  preview.addEventListener('click', () => {
+    preview.closest('.panel').querySelector('.select-btn').click();
+  });
+});
+</script>
