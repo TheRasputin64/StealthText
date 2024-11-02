@@ -1,7 +1,7 @@
 # StealthText
 > hiding messages in images because why not...
 
-<img src="cat.gif" width="100" height="100" alt="tired frog hiding from society">
+<img src="cat.gif" width="512" height="512" alt="tired frog hiding from society">
 
 ```
 └── StealthText/
